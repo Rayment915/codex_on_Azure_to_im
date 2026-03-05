@@ -6,6 +6,7 @@
  */
 
 import fs from 'node:fs';
+import { execSync } from 'node:child_process';
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import type { SDKMessage, PermissionResult } from '@anthropic-ai/claude-agent-sdk';
 import type { LLMProvider, StreamChatParams } from 'claude-to-im/src/lib/bridge/host.js';
@@ -16,16 +17,89 @@ function sseEvent(type: string, data: unknown): string {
   return `data: ${JSON.stringify({ type, data: payload })}\n`;
 }
 
+// ── Environment isolation ──
+
+/** Env vars always passed through to the CLI subprocess. */
+const ENV_WHITELIST = new Set([
+  'PATH', 'HOME', 'USER', 'LOGNAME', 'SHELL',
+  'LANG', 'LC_ALL', 'LC_CTYPE',
+  'TMPDIR', 'TEMP', 'TMP',
+  'TERM', 'COLORTERM',
+  'NODE_PATH', 'NODE_EXTRA_CA_CERTS',
+  'XDG_CONFIG_HOME', 'XDG_DATA_HOME', 'XDG_CACHE_HOME',
+  'SSH_AUTH_SOCK',
+]);
+
+/** Prefixes that are always stripped (even in inherit mode). */
+const ENV_ALWAYS_STRIP = ['CLAUDECODE'];
+
+/**
+ * Build a clean env for the CLI subprocess.
+ *
+ * CTI_ENV_ISOLATION (default "strict"):
+ *   "strict"  — only whitelist + CTI_* + ANTHROPIC_* from config.env
+ *   "inherit" — full parent env minus CLAUDECODE
+ */
+export function buildSubprocessEnv(): Record<string, string> {
+  const mode = process.env.CTI_ENV_ISOLATION || 'strict';
+  const out: Record<string, string> = {};
+
+  if (mode === 'inherit') {
+    // Pass everything except always-stripped vars
+    for (const [k, v] of Object.entries(process.env)) {
+      if (v === undefined) continue;
+      if (ENV_ALWAYS_STRIP.includes(k)) continue;
+      out[k] = v;
+    }
+  } else {
+    // Strict: whitelist only
+    for (const [k, v] of Object.entries(process.env)) {
+      if (v === undefined) continue;
+      if (ENV_WHITELIST.has(k)) { out[k] = v; continue; }
+      // Pass through CTI_* so skill config is available
+      if (k.startsWith('CTI_')) { out[k] = v; continue; }
+    }
+    // ANTHROPIC_* should come from config.env, not parent process.
+    // Only pass them if CTI_ANTHROPIC_PASSTHROUGH is explicitly set.
+    if (process.env.CTI_ANTHROPIC_PASSTHROUGH === 'true') {
+      for (const [k, v] of Object.entries(process.env)) {
+        if (v !== undefined && k.startsWith('ANTHROPIC_')) out[k] = v;
+      }
+    }
+  }
+
+  return out;
+}
+
+// ── Claude CLI path resolution ──
+
+function isExecutable(p: string): boolean {
+  try {
+    fs.accessSync(p, fs.constants.X_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Resolve the path to the `claude` CLI executable.
- * Priority: CTI_CLAUDE_CODE_EXECUTABLE env → `which claude` → common install paths.
+ * Priority: CTI_CLAUDE_CODE_EXECUTABLE env → command -v claude → common install paths.
  */
 export function resolveClaudeCliPath(): string | undefined {
   // 1. Explicit env var
   const fromEnv = process.env.CTI_CLAUDE_CODE_EXECUTABLE;
-  if (fromEnv && fs.existsSync(fromEnv)) return fromEnv;
+  if (fromEnv && isExecutable(fromEnv)) return fromEnv;
 
-  // 2. Common install locations
+  // 2. command -v claude (respects PATH)
+  try {
+    const resolved = execSync('command -v claude', { encoding: 'utf-8', timeout: 3000 }).trim();
+    if (resolved && isExecutable(resolved)) return resolved;
+  } catch {
+    // not found in PATH
+  }
+
+  // 3. Common install locations
   const candidates = [
     '/usr/local/bin/claude',
     '/opt/homebrew/bin/claude',
@@ -33,7 +107,7 @@ export function resolveClaudeCliPath(): string | undefined {
     `${process.env.HOME}/.local/bin/claude`,
   ];
   for (const p of candidates) {
-    if (fs.existsSync(p)) return p;
+    if (isExecutable(p)) return p;
   }
 
   return undefined;
@@ -54,11 +128,7 @@ export class SDKLLMProvider implements LLMProvider {
       start(controller) {
         (async () => {
           try {
-            // Strip CLAUDECODE env var to allow nested Claude Code sessions
-            const cleanEnv: Record<string, string> = {};
-            for (const [k, v] of Object.entries(process.env)) {
-              if (k !== 'CLAUDECODE' && v !== undefined) cleanEnv[k] = v;
-            }
+            const cleanEnv = buildSubprocessEnv();
 
             const queryOptions: Record<string, unknown> = {
               cwd: params.workingDirectory,

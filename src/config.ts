@@ -23,7 +23,7 @@ export interface Config {
   discordAllowedGuilds?: string[];
 }
 
-export const CTI_HOME = path.join(os.homedir(), ".claude-to-im");
+export const CTI_HOME = process.env.CTI_HOME || path.join(os.homedir(), ".claude-to-im");
 export const CONFIG_PATH = path.join(CTI_HOME, "config.env");
 
 function parseEnvFile(content: string): Map<string, string> {
@@ -196,6 +196,7 @@ export function configToSettings(config: Config): Map<string, string> {
   m.set("bridge_default_work_dir", config.defaultWorkDir);
   m.set("bridge_default_model", config.defaultModel);
   m.set("default_model", config.defaultModel);
+  m.set("bridge_default_mode", config.defaultMode);
 
   return m;
 }

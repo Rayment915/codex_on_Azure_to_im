@@ -229,7 +229,7 @@ export class JsonFileStore implements BridgeStore {
       sdkSessionId: '',
       workingDirectory: data.workingDirectory,
       model: data.model,
-      mode: 'code',
+      mode: (this.settings.get('bridge_default_mode') as 'code' | 'plan' | 'ask') || 'code',
       active: true,
       createdAt: now(),
       updatedAt: now(),

@@ -44,7 +44,7 @@ Starts the bridge daemon in the background.
 /claude-to-im start
 ```
 
-The daemon process ID is stored in `~/.claude-to-im/runtime/daemon.pid`. If the daemon is already running, the command reports the existing process.
+The daemon process ID is stored in `~/.claude-to-im/runtime/bridge.pid`. If the daemon is already running, the command reports the existing process.
 
 If startup fails, run `/claude-to-im doctor` to diagnose issues.
 

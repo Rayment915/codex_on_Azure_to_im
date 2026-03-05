@@ -9,9 +9,39 @@ LOG_FILE="$CTI_HOME/logs/bridge.log"
 ensure_dirs() { mkdir -p "$CTI_HOME"/{data,logs,runtime,data/messages}; }
 
 ensure_built() {
+  local need_build=0
   if [ ! -f "$SKILL_DIR/dist/daemon.mjs" ]; then
+    need_build=1
+  else
+    # Rebuild if any src file is newer than the bundle
+    local newest_src
+    newest_src=$(find "$SKILL_DIR/src" -name '*.ts' -newer "$SKILL_DIR/dist/daemon.mjs" 2>/dev/null | head -1)
+    if [ -n "$newest_src" ]; then
+      need_build=1
+    fi
+  fi
+  if [ "$need_build" = "1" ]; then
     echo "Building daemon bundle..."
     (cd "$SKILL_DIR" && npm run build)
+  fi
+}
+
+# Clean environment for subprocess isolation.
+# CTI_ENV_ISOLATION=strict (default): strip CLAUDECODE + ANTHROPIC_* from parent env.
+# CTI_ENV_ISOLATION=inherit: only strip CLAUDECODE.
+clean_env() {
+  unset CLAUDECODE 2>/dev/null || true
+
+  local mode="${CTI_ENV_ISOLATION:-strict}"
+  if [ "$mode" = "strict" ]; then
+    # Strip all ANTHROPIC_* vars unless CTI_ANTHROPIC_PASSTHROUGH=true
+    if [ "${CTI_ANTHROPIC_PASSTHROUGH:-}" != "true" ]; then
+      while IFS='=' read -r name _; do
+        case "$name" in
+          ANTHROPIC_*) unset "$name" 2>/dev/null || true ;;
+        esac
+      done < <(env)
+    fi
   fi
 }
 
@@ -24,8 +54,7 @@ case "${1:-help}" in
       cat "$STATUS_FILE" 2>/dev/null
       exit 1
     fi
-    # Unset CLAUDECODE so the SDK can spawn nested Claude CLI sessions
-    unset CLAUDECODE
+    clean_env
     nohup node "$SKILL_DIR/dist/daemon.mjs" >> "$LOG_FILE" 2>&1 &
     echo $! > "$PID_FILE"
     sleep 2

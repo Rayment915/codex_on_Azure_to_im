@@ -89,11 +89,17 @@ describe('configToSettings', () => {
     assert.equal(m.get('bridge_feishu_allowed_users'), 'fu1');
   });
 
-  it('maps workdir and model', () => {
+  it('maps workdir, model, and mode', () => {
     const m = configToSettings(base);
     assert.equal(m.get('bridge_default_work_dir'), '/tmp/test');
     assert.equal(m.get('bridge_default_model'), 'claude-sonnet-4-20250514');
     assert.equal(m.get('default_model'), 'claude-sonnet-4-20250514');
+    assert.equal(m.get('bridge_default_mode'), 'code');
+  });
+
+  it('maps non-default mode', () => {
+    const m = configToSettings({ ...base, defaultMode: 'plan' });
+    assert.equal(m.get('bridge_default_mode'), 'plan');
   });
 
   it('omits optional fields when not set', () => {

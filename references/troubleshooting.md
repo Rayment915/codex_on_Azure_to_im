@@ -64,6 +64,6 @@ The daemon management script (`daemon.sh`) handles stale PID files automatically
 1. Run `/claude-to-im stop` -- it will clean up the stale PID file
 2. If stop also fails, manually remove the PID file:
    ```bash
-   rm ~/.claude-to-im/runtime/daemon.pid
+   rm ~/.claude-to-im/runtime/bridge.pid
    ```
 3. Run `/claude-to-im start` to launch a fresh instance

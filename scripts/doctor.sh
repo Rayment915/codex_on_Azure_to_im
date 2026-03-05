@@ -32,6 +32,36 @@ else
   check "Node.js installed" 1
 fi
 
+# --- Claude CLI available ---
+if command -v claude &>/dev/null; then
+  CLAUDE_VER=$(claude --version 2>/dev/null || echo "unknown")
+  check "Claude CLI available (${CLAUDE_VER})" 0
+else
+  check "Claude CLI available (not found in PATH)" 1
+fi
+
+# --- SDK cli.js resolvable ---
+SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+SDK_CLI="$SKILL_DIR/node_modules/@anthropic-ai/claude-agent-sdk/dist/cli.js"
+if [ -f "$SDK_CLI" ]; then
+  check "SDK cli.js exists ($SDK_CLI)" 0
+else
+  check "SDK cli.js exists (not found — run 'npm install' in $SKILL_DIR)" 1
+fi
+
+# --- dist/daemon.mjs freshness ---
+DAEMON_MJS="$SKILL_DIR/dist/daemon.mjs"
+if [ -f "$DAEMON_MJS" ]; then
+  STALE_SRC=$(find "$SKILL_DIR/src" -name '*.ts' -newer "$DAEMON_MJS" 2>/dev/null | head -1)
+  if [ -z "$STALE_SRC" ]; then
+    check "dist/daemon.mjs is up to date" 0
+  else
+    check "dist/daemon.mjs is stale (src changed, run 'npm run build')" 1
+  fi
+else
+  check "dist/daemon.mjs exists (not built — run 'npm run build')" 1
+fi
+
 # --- config.env exists ---
 if [ -f "$CONFIG_FILE" ]; then
   check "config.env exists" 0

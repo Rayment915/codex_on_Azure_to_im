@@ -1,7 +1,6 @@
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { JsonFileStore } from '../store.js';
 import { CTI_HOME } from '../config.js';
@@ -12,8 +11,9 @@ const DATA_DIR = path.join(CTI_HOME, 'data');
 function makeSettings(): Map<string, string> {
   return new Map([
     ['remote_bridge_enabled', 'true'],
-    ['bridge_default_cwd', '/tmp/test-cwd'],
-    ['bridge_model', 'test-model'],
+    ['bridge_default_work_dir', '/tmp/test-cwd'],
+    ['bridge_default_model', 'test-model'],
+    ['bridge_default_mode', 'code'],
   ]);
 }
 
@@ -26,7 +26,7 @@ describe('JsonFileStore', () => {
   it('getSetting returns values from settings map', () => {
     const store = new JsonFileStore(makeSettings());
     assert.equal(store.getSetting('remote_bridge_enabled'), 'true');
-    assert.equal(store.getSetting('bridge_model'), 'test-model');
+    assert.equal(store.getSetting('bridge_default_model'), 'test-model');
     assert.equal(store.getSetting('nonexistent'), null);
   });
 
@@ -70,6 +70,20 @@ describe('JsonFileStore', () => {
     });
     assert.equal(b2.id, b1.id);
     assert.equal(b2.codepilotSessionId, 'sess-2');
+  });
+
+  it('upsertChannelBinding uses default mode from settings', () => {
+    const settings = makeSettings();
+    settings.set('bridge_default_mode', 'plan');
+    const store = new JsonFileStore(settings);
+    const b = store.upsertChannelBinding({
+      channelType: 'telegram',
+      chatId: '456',
+      codepilotSessionId: 'sess-1',
+      workingDirectory: '/tmp',
+      model: 'model-1',
+    });
+    assert.equal(b.mode, 'plan');
   });
 
   it('getChannelBinding returns null for missing', () => {
