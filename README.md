@@ -1,23 +1,23 @@
-# Claude-to-IM Skill
+# codex_on_Azure_to_im
 
-Bridge Claude Code / Codex to IM platforms — chat with AI coding agents from Telegram, Discord, Feishu/Lark, or QQ.
+Bridge Codex on Azure, Claude Code, or Codex-compatible runtimes to IM platforms so you can chat with your coding agent from Telegram, Discord, Feishu/Lark, or QQ.
 
 [中文文档](README_CN.md)
 
-> **Want a desktop GUI instead?** Check out [CodePilot](https://github.com/op7418/CodePilot) — a full-featured desktop app with visual chat interface, session management, file tree preview, permission controls, and more. This skill was extracted from CodePilot's IM bridge module for users who prefer a lightweight, CLI-only setup.
+> This fork focuses on stable Codex-on-Azure usage in IM chats, including launchd environment forwarding on macOS and a Codex CLI fallback path when the SDK path is incompatible.
 
 ---
 
 ## How It Works
 
-This skill runs a background daemon that connects your IM bots to Claude Code or Codex sessions. Messages from IM are forwarded to the AI coding agent, and responses (including tool use, permission requests, streaming previews) are sent back to your chat.
+This project runs a background daemon that connects your IM bots to Claude Code or Codex sessions. Messages from IM are forwarded to the AI coding agent, and responses (including tool use, permission requests, and streaming previews) are sent back to your chat.
 
 ```
 You (Telegram/Discord/Feishu/QQ)
   ↕ Bot API
 Background Daemon (Node.js)
-  ↕ Claude Agent SDK or Codex SDK (configurable via CTI_RUNTIME)
-Claude Code / Codex → reads/writes your codebase
+  ↕ Claude Agent SDK or Codex SDK / Codex CLI fallback
+Claude Code / Codex on Azure → reads/writes your codebase
 ```
 
 ## Features
@@ -28,64 +28,42 @@ Claude Code / Codex → reads/writes your codebase
 - **Streaming preview** — see Claude's response as it types (Telegram & Discord)
 - **Session persistence** — conversations survive daemon restarts
 - **Secret protection** — tokens stored with `chmod 600`, auto-redacted in all logs
-- **Zero code required** — install the skill and run `/claude-to-im setup`, that's it
+- **Codex on Azure friendly** — works with `~/.codex/config.toml` Azure setups and forwards Azure env vars into the macOS launchd daemon
+- **Zero code required** — install the skill and run `/claude-to-im setup`
 
 ## Prerequisites
 
 - **Node.js >= 20**
 - **Claude Code CLI** (for `CTI_RUNTIME=claude` or `auto`) — installed and authenticated (`claude` command available)
-- **Codex CLI** (for `CTI_RUNTIME=codex` or `auto`) — `npm install -g @openai/codex`. Auth: run `codex auth login`, or set `OPENAI_API_KEY` (optional, for API mode)
+- **Codex CLI** (for `CTI_RUNTIME=codex` or `auto`) — `npm install -g @openai/codex`
+- For Azure-backed Codex, configure `~/.codex/config.toml` and make sure required env vars such as `AZURE_OPENAI_API_KEY` are available to the daemon environment
 
 ## Installation
 
-### npx skills (recommended)
+### Claude Code
 
 ```bash
-npx skills add op7418/Claude-to-IM-skill
-```
-
-### Git clone
-
-```bash
-git clone https://github.com/op7418/Claude-to-IM-skill.git ~/.claude/skills/claude-to-im
-```
-
-Clones the repo directly into your personal skills directory. Claude Code discovers it automatically.
-
-### Symlink
-
-If you prefer to keep the repo elsewhere (e.g., for development):
-
-```bash
-git clone https://github.com/op7418/Claude-to-IM-skill.git ~/code/Claude-to-IM-skill
-mkdir -p ~/.claude/skills
-ln -s ~/code/Claude-to-IM-skill ~/.claude/skills/claude-to-im
+git clone https://github.com/Rayment915/codex_on_Azure_to_im.git ~/.claude/skills/claude-to-im
 ```
 
 ### Codex
 
-If you use [Codex](https://github.com/openai/codex), clone directly into the Codex skills directory:
-
 ```bash
-git clone https://github.com/op7418/Claude-to-IM-skill.git ~/.codex/skills/claude-to-im
+git clone https://github.com/Rayment915/codex_on_Azure_to_im.git ~/.codex/skills/claude-to-im
 ```
 
-Or use the provided install script for automatic dependency installation and build:
+Or use the provided install script:
 
 ```bash
-# Clone and install (copy mode)
-git clone https://github.com/op7418/Claude-to-IM-skill.git ~/code/Claude-to-IM-skill
-bash ~/code/Claude-to-IM-skill/scripts/install-codex.sh
-
-# Or use symlink mode for development
-bash ~/code/Claude-to-IM-skill/scripts/install-codex.sh --link
+git clone https://github.com/Rayment915/codex_on_Azure_to_im.git ~/code/codex_on_Azure_to_im
+bash ~/code/codex_on_Azure_to_im/scripts/install-codex.sh
 ```
 
 ### Verify installation
 
 **Claude Code:** Start a new session and type `/` — you should see `claude-to-im` in the skill list. Or ask Claude: "What skills are available?"
 
-**Codex:** Start a new session and say "claude-to-im setup" or "start bridge" — Codex will recognize the skill and run the setup wizard.
+**Codex:** Start a new session and say `claude-to-im setup` or `start bridge`.
 
 ## Quick Start
 
@@ -108,11 +86,11 @@ The wizard will guide you through:
 /claude-to-im start
 ```
 
-The daemon starts in the background. You can close the terminal — it keeps running.
+The daemon starts in the background. On macOS it runs via `launchd`.
 
 ### 3. Chat
 
-Open your IM app and send a message to your bot. Claude Code will respond.
+Open your IM app and send a message to your bot. Your configured runtime will respond.
 
 When Claude needs to use a tool (edit a file, run a command), you'll see a permission prompt with **Allow** / **Deny** buttons right in the chat (Telegram/Discord), or a text `/perm` command prompt (Feishu/QQ).
 
@@ -249,6 +227,12 @@ npm run typecheck  # Type check
 npm test           # Run tests
 npm run build      # Build bundle
 ```
+
+## Publish Notes
+
+- `config.env` is intentionally ignored and should never be committed
+- Public installs should use `config.env.example` as the starting point
+- On macOS, `scripts/supervisor-macos.sh` forwards runtime env vars into launchd so Codex on Azure can run in the background
 
 ## License
 

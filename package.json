@@ -14,7 +14,7 @@
     "claude-to-im": "github:op7418/claude-to-im"
   },
   "optionalDependencies": {
-    "@openai/codex-sdk": "^0.110.0"
+    "@openai/codex-sdk": "^0.116.0"
   },
   "devDependencies": {
     "@types/node": "^22",

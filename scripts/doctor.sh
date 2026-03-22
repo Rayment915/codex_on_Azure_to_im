@@ -243,21 +243,27 @@ if [ "$CTI_RUNTIME" = "codex" ] || [ "$CTI_RUNTIME" = "auto" ]; then
   fi
 
   # Check Codex auth: any of CTI_CODEX_API_KEY / CODEX_API_KEY / OPENAI_API_KEY,
-  # or `codex auth status` showing logged-in (interactive login).
+  # Azure/OpenAI provider credentials in ~/.codex/config.toml,
+  # or `codex login status` / legacy `codex auth status` showing logged-in.
   CODEX_AUTH=1
   if [ -n "${CTI_CODEX_API_KEY:-}" ] || [ -n "${CODEX_API_KEY:-}" ] || [ -n "${OPENAI_API_KEY:-}" ]; then
     CODEX_AUTH=0
+  elif [ -f "$HOME/.codex/config.toml" ]; then
+    if grep -qiE '^[[:space:]]*model_provider[[:space:]]*=' "$HOME/.codex/config.toml" && \
+       grep -qiE '^[[:space:]]*(env_key|api_key|AZURE_OPENAI_API_KEY|OPENAI_API_KEY)[[:space:]]*=' "$HOME/.codex/config.toml"; then
+      CODEX_AUTH=0
+    fi
   elif command -v codex &>/dev/null; then
-    CODEX_AUTH_OUT=$(codex auth status 2>&1 || true)
-    if echo "$CODEX_AUTH_OUT" | grep -qiE 'logged.in|authenticated'; then
+    CODEX_AUTH_OUT=$(codex login status 2>&1 || codex auth status 2>&1 || true)
+    if echo "$CODEX_AUTH_OUT" | grep -qiE 'logged.in|authenticated|logged in|api key|provider'; then
       CODEX_AUTH=0
     fi
   fi
   if [ "$CODEX_AUTH" = "0" ]; then
-    check "Codex auth available (API key or login)" 0
+    check "Codex auth available (API key, config.toml, or login)" 0
   else
     if [ "$CTI_RUNTIME" = "codex" ]; then
-      check "Codex auth available (set OPENAI_API_KEY or run 'codex auth login')" 1
+      check "Codex auth available (set OPENAI_API_KEY, configure ~/.codex/config.toml, or run 'codex login')" 1
     else
       check "Codex auth available (not found — needed only for Codex fallback)" 0
     fi
