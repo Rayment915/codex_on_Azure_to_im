@@ -131,7 +131,6 @@ export class CodexProvider implements LLMProvider {
               if (!shouldFallbackToCLI(sdkMessage)) {
                 throw sdkErr;
               }
-              console.warn('[codex-provider] SDK path failed, falling back to direct CLI:', sdkMessage);
               await self.runViaCLI(params, controller, tempFiles);
             }
             controller.close();

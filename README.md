@@ -4,7 +4,7 @@ Bridge Codex on Azure, Claude Code, or Codex-compatible runtimes to IM platforms
 
 [中文文档](README_CN.md)
 
-> This fork focuses on stable Codex-on-Azure usage in IM chats, including launchd environment forwarding on macOS and a Codex CLI fallback path when the SDK path is incompatible.
+> This repository is based on and adapted from [Claude-to-IM](https://github.com/op7418/Claude-to-IM-skill). This fork focuses on stable Codex-on-Azure usage in IM chats, including macOS `launchd` environment forwarding and compatibility with Codex on Azure Foundry style configuration.
 
 ---
 
@@ -28,7 +28,9 @@ Claude Code / Codex on Azure → reads/writes your codebase
 - **Streaming preview** — see Claude's response as it types (Telegram & Discord)
 - **Session persistence** — conversations survive daemon restarts
 - **Secret protection** — tokens stored with `chmod 600`, auto-redacted in all logs
-- **Codex on Azure friendly** — works with `~/.codex/config.toml` Azure setups and forwards Azure env vars into the macOS launchd daemon
+- **Codex on Azure friendly** — works with `~/.codex/config.toml` Azure setups, including Azure OpenAI / Azure Foundry-style provider configuration
+- **launchd-safe on macOS** — forwards Azure runtime env vars such as `AZURE_OPENAI_API_KEY` into the background daemon
+- **SDK-first, CLI-fallback** — prefers the Codex SDK path, and automatically falls back to direct Codex CLI execution when SDK/CLI compatibility issues occur
 - **Zero code required** — install the skill and run `/claude-to-im setup`
 
 ## Prerequisites
@@ -37,6 +39,29 @@ Claude Code / Codex on Azure → reads/writes your codebase
 - **Claude Code CLI** (for `CTI_RUNTIME=claude` or `auto`) — installed and authenticated (`claude` command available)
 - **Codex CLI** (for `CTI_RUNTIME=codex` or `auto`) — `npm install -g @openai/codex`
 - For Azure-backed Codex, configure `~/.codex/config.toml` and make sure required env vars such as `AZURE_OPENAI_API_KEY` are available to the daemon environment
+
+### Codex on Azure / Foundry example
+
+This repo is compatible with Codex configurations that point to Azure OpenAI or Azure AI Foundry-style endpoints through `~/.codex/config.toml`, for example:
+
+```toml
+model = "gpt-5.4"
+model_provider = "azure"
+
+[model_providers.azure]
+name = "Azure OpenAI"
+base_url = "https://YOUR-RESOURCE.openai.azure.com/openai/v1"
+env_key = "AZURE_OPENAI_API_KEY"
+wire_api = "responses"
+```
+
+Then make sure the shell or launch environment contains:
+
+```bash
+export AZURE_OPENAI_API_KEY=your-key
+```
+
+On macOS, this fork forwards Azure-related env vars into the `launchd` daemon so Feishu/Telegram/Discord/QQ-triggered background runs can still use Codex on Azure.
 
 ## Installation
 
@@ -172,7 +197,7 @@ The `setup` wizard provides inline guidance for every step. Here's a summary:
 | `src/config.ts` | Load/save `config.env`, map to bridge settings |
 | `src/store.ts` | JSON file BridgeStore (30 methods, write-through cache) |
 | `src/llm-provider.ts` | Claude Agent SDK `query()` → SSE stream |
-| `src/codex-provider.ts` | Codex SDK `runStreamed()` → SSE stream |
+| `src/codex-provider.ts` | Codex SDK `runStreamed()` → SSE stream, with direct Codex CLI fallback |
 | `src/sse-utils.ts` | Shared SSE formatting helper |
 | `src/permission-gateway.ts` | Async bridge: SDK `canUseTool` ↔ IM buttons |
 | `src/logger.ts` | Secret-redacted file logging with rotation |
@@ -232,7 +257,7 @@ npm run build      # Build bundle
 
 - `config.env` is intentionally ignored and should never be committed
 - Public installs should use `config.env.example` as the starting point
-- On macOS, `scripts/supervisor-macos.sh` forwards runtime env vars into launchd so Codex on Azure can run in the background
+- On macOS, `scripts/supervisor-macos.sh` forwards runtime env vars into launchd so Codex on Azure / Azure Foundry-backed Codex can run in the background
 
 ## License
 
