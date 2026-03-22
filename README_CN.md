@@ -170,6 +170,28 @@ CTI_FEISHU_DOMAIN=https://open.feishu.cn
    - 批量添加所需的 bot / message / card 权限
    - 启用 **Bot** 能力
    - 发布并审批第一版
+   - 可直接使用下面这段 JSON 批量加权限：
+
+```json
+{
+  "scopes": {
+    "tenant": [
+      "im:message:send_as_bot",
+      "im:message:readonly",
+      "im:message.p2p_msg:readonly",
+      "im:message.group_at_msg:readonly",
+      "im:message:update",
+      "im:message.reactions:read",
+      "im:message.reactions:write_only",
+      "im:chat:read",
+      "im:resource",
+      "cardkit:card:write",
+      "cardkit:card:read"
+    ],
+    "user": []
+  }
+}
+```
 4. 启动 bridge：
 
 ```bash
@@ -227,10 +249,23 @@ bash scripts/daemon.sh start
 2. 创建自建应用
 3. 获取 App ID 和 App Secret
 4. 在“权限与范围”中批量添加所需权限
-5. 启用 Bot 能力
-6. 在“事件与回调”里启用 **长连接**
-7. 添加 `im.message.receive_v1`
-8. 发布并审批应用
+5. 本仓库需要的飞书权限包括：
+   - `im:message:send_as_bot`
+   - `im:message:readonly`
+   - `im:message.p2p_msg:readonly`
+   - `im:message.group_at_msg:readonly`
+   - `im:message:update`
+   - `im:message.reactions:read`
+   - `im:message.reactions:write_only`
+   - `im:chat:read`
+   - `im:resource`
+   - `cardkit:card:write`
+   - `cardkit:card:read`
+6. 启用 Bot 能力
+7. 在“事件与回调”里启用 **长连接**
+8. 添加事件 `im.message.receive_v1`
+9. 添加回调 `card.action.trigger`
+10. 发布并审批应用
 
 ### QQ
 

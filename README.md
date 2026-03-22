@@ -141,6 +141,28 @@ CTI_FEISHU_DOMAIN=https://open.feishu.cn
    - batch-add the required bot/message/card permissions
    - enable the **Bot** feature
    - publish and approve the first version
+   - use this permission JSON for batch-add:
+
+```json
+{
+  "scopes": {
+    "tenant": [
+      "im:message:send_as_bot",
+      "im:message:readonly",
+      "im:message.p2p_msg:readonly",
+      "im:message.group_at_msg:readonly",
+      "im:message:update",
+      "im:message.reactions:read",
+      "im:message.reactions:write_only",
+      "im:chat:read",
+      "im:resource",
+      "cardkit:card:write",
+      "cardkit:card:read"
+    ],
+    "user": []
+  }
+}
+```
 4. Start the bridge:
 
 ```bash
@@ -194,10 +216,22 @@ The `setup` wizard provides inline guidance for every step. Here's a summary:
 1. Go to [Feishu Open Platform](https://open.feishu.cn/app) (or [Lark](https://open.larksuite.com/app))
 2. Create Custom App → get App ID and App Secret
 3. **Batch-add permissions**: go to "Permissions & Scopes" → use batch configuration to add all required scopes (the `setup` wizard provides the exact JSON)
-4. Enable Bot feature under "Add Features"
-5. **Events & Callbacks**: select **"Long Connection"** as event dispatch method → add `im.message.receive_v1` event
-6. **Publish**: go to "Version Management & Release" → create version → submit for review → approve in Admin Console
-7. **Important**: The bot will NOT work until the version is approved and published
+4. Required Feishu permissions for this repo are:
+   - `im:message:send_as_bot`
+   - `im:message:readonly`
+   - `im:message.p2p_msg:readonly`
+   - `im:message.group_at_msg:readonly`
+   - `im:message:update`
+   - `im:message.reactions:read`
+   - `im:message.reactions:write_only`
+   - `im:chat:read`
+   - `im:resource`
+   - `cardkit:card:write`
+   - `cardkit:card:read`
+5. Enable Bot feature under "Add Features"
+6. **Events & Callbacks**: select **"Long Connection"** as event dispatch method → add `im.message.receive_v1` event and `card.action.trigger` callback
+7. **Publish**: go to "Version Management & Release" → create version → submit for review → approve in Admin Console
+8. **Important**: The bot will NOT work until the version is approved and published
 
 ### QQ
 
