@@ -119,6 +119,43 @@ Open your IM app and send a message to your bot. Your configured runtime will re
 
 When Claude needs to use a tool (edit a file, run a command), you'll see a permission prompt with **Allow** / **Deny** buttons right in the chat (Telegram/Discord), or a text `/perm` command prompt (Feishu/QQ).
 
+### Feishu quick example
+
+If you want the fastest path to a working Feishu setup, use this minimal flow:
+
+1. Create a Feishu custom app and get:
+   - `CTI_FEISHU_APP_ID`
+   - `CTI_FEISHU_APP_SECRET`
+2. Set your runtime in `~/.claude-to-im/config.env`, for example:
+
+```env
+CTI_RUNTIME=codex
+CTI_ENABLED_CHANNELS=feishu
+CTI_DEFAULT_WORKDIR=/path/to/your/project
+CTI_FEISHU_APP_ID=cli_xxx
+CTI_FEISHU_APP_SECRET=xxx
+CTI_FEISHU_DOMAIN=https://open.feishu.cn
+```
+
+3. In Feishu Open Platform:
+   - batch-add the required bot/message/card permissions
+   - enable the **Bot** feature
+   - publish and approve the first version
+4. Start the bridge:
+
+```bash
+bash scripts/daemon.sh start
+```
+
+5. Go back to Feishu Open Platform and configure:
+   - event dispatch method: **Long Connection**
+   - event: `im.message.receive_v1`
+   - callback: `card.action.trigger`
+6. Publish and approve again
+7. Send `hello` to the bot in Feishu and confirm it replies
+
+If you use Codex on Azure, make sure `AZURE_OPENAI_API_KEY` is available to the daemon environment before starting the bridge.
+
 ## Commands
 
 All commands are run inside Claude Code or Codex:

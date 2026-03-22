@@ -148,6 +148,43 @@ bash ~/code/codex_on_Azure_to_im/scripts/install-codex.sh
 - Telegram / Discord：会看到 **Allow / Deny** 按钮
 - 飞书 / QQ：会看到文本形式的 `/perm` 审批提示
 
+### 飞书快速配置示例
+
+如果你想最快跑通一个可用的飞书版本，可以按这个最小流程来：
+
+1. 创建飞书自建应用，拿到：
+   - `CTI_FEISHU_APP_ID`
+   - `CTI_FEISHU_APP_SECRET`
+2. 在 `~/.claude-to-im/config.env` 中写入类似配置：
+
+```env
+CTI_RUNTIME=codex
+CTI_ENABLED_CHANNELS=feishu
+CTI_DEFAULT_WORKDIR=/path/to/your/project
+CTI_FEISHU_APP_ID=cli_xxx
+CTI_FEISHU_APP_SECRET=xxx
+CTI_FEISHU_DOMAIN=https://open.feishu.cn
+```
+
+3. 在飞书开放平台中：
+   - 批量添加所需的 bot / message / card 权限
+   - 启用 **Bot** 能力
+   - 发布并审批第一版
+4. 启动 bridge：
+
+```bash
+bash scripts/daemon.sh start
+```
+
+5. 回到飞书开放平台，配置：
+   - 订阅方式：**长连接**
+   - 事件：`im.message.receive_v1`
+   - 回调：`card.action.trigger`
+6. 再发布并审批一次
+7. 在飞书里给机器人发送 `hello`，确认它能回复
+
+如果你使用的是 Codex on Azure，记得在启动 bridge 之前确保 `AZURE_OPENAI_API_KEY` 对守护进程环境可见。
+
 ## 命令列表
 
 所有命令都在 Claude Code 或 Codex 里执行：
